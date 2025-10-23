@@ -13,12 +13,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // PostgreSQL connection pool
+console.log('DATABASE_URL:', process.env.DATABASE_URL);
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'login_data',
-  password: 'Akkumar@1234',
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 console.log('Attempting to create users table...');
