@@ -112,7 +112,7 @@ app.post('/send-reset-code', async (req: Request, res: Response) => {
 
   const msg = {
     to: email,
-    from: process.env.EMAIL_USER as string, // Ensure EMAIL_USER is defined
+    from: 'akshayprabhu19012005@gmail.com', // Corrected 'from' email address
     subject: 'Password Reset Code',
     text: `Your reset code is: ${resetCode}`,
   };
