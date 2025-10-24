@@ -58,7 +58,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-app.post('/signup-temp', async (req, res) => {
+app.post('/signup', async (req, res) => {
     try {
         const { email, password } = req.body;
         console.log(`Attempting to sign up user: ${email}`);
