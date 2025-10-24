@@ -1,11 +1,10 @@
 
 
-import express from 'express';
-import { Pool } from 'pg';
-import bcrypt from 'bcrypt';
-import { fileURLToPath } from 'url';
-import path from 'path';
-import nodemailer from 'nodemailer';
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { Pool } = require('pg');
+const sgMail = require('@sendgrid/mail'); // Import SendGrid
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,49 +88,49 @@ app.get('/users', async (req, res) => {
 
 // Send Reset Code route
 app.post('/send-reset-code', async (req, res) => {
-    const { email } = req.body;
-    const trimmedEmail = email.trim();
+  const { email } = req.body;
+  console.log(`Received request to send reset code for email: ${email}`); // Log the incoming email
 
-    try {
-        const userResult = await pool.query('SELECT id FROM users WHERE email = $1', [trimmedEmail]);
-        const user = userResult.rows[0];
+  const user = await db.query('SELECT * FROM users WHERE email = $1', [email]);
 
-        if (user) {
-            const resetCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
-            const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+  if (user.rows.length === 0) {
+    console.log(`User not found for email: ${email}`); // Log if user not found
+    return res.status(404).send('User not found');
+  }
 
-            await pool.query(
-                'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
-                [resetCode, expiryTime, user.id]
-            );
+  const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10-minute expiration
 
-            // Send email with Nodemailer
-            const transporter = nodemailer.createTransport({
-                service: process.env.EMAIL_SERVICE, // e.g., 'gmail'
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS,
-                },
-            });
+  console.log(`Generated reset code: ${resetCode}, expires at: ${expiresAt}`); // Log generated code and expiry
 
-            const mailOptions = {
-                from: process.env.EMAIL_USER,
-                to: trimmedEmail,
-                subject: 'Password Reset Code',
-                text: `Your password reset code is: ${resetCode}. This code will expire in 10 minutes.`,
-            };
+  try {
+    await db.query(
+      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE email = $3',
+      [resetCode, expiresAt, email]
+    );
+    console.log(`Database updated with reset token for email: ${email}`); // Log successful DB update
+  } catch (dbError) {
+    console.error(`Error updating database for email ${email}:`, dbError); // Log DB errors
+    return res.status(500).send('Error updating database');
+  }
 
-            await transporter.sendMail(mailOptions);
-            console.log(`Password reset code sent to ${trimmedEmail}`);
-        }
+  const msg = {
+    to: email,
+    from: process.env.EMAIL_USER, // Use your verified sender email from SendGrid
+    subject: 'Password Reset Code',
+    text: `Your reset code is: ${resetCode}`,
+  };
 
-        // Always send a generic success message to prevent email enumeration
-        res.status(200).send('If an account exists, a code has been sent.');
+  console.log(`Attempting to send email via SendGrid to: ${email} from: ${process.env.EMAIL_USER}`); // Log SendGrid attempt
 
-    } catch (error) {
-        console.error('Error sending reset code:', error);
-        res.status(500).send('Error sending reset code.');
-    }
+  try {
+    await sgMail.send(msg);
+    console.log(`Reset code email sent successfully via SendGrid to: ${email}`); // Log successful email send
+    res.status(200).send('Reset code sent');
+  } catch (emailError) {
+    console.error(`Error sending reset code email via SendGrid to ${email}:`, emailError); // Log email sending errors
+    res.status(500).send('Error sending reset code');
+  }
 });
 
 // Reset Password with Code route
@@ -168,3 +167,4 @@ app.post('/reset-password-with-code', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+sgMail.setApiKey(process.env.SENDGRID_API_KEY); // Set SendGrid API Key
