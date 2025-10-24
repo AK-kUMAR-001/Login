@@ -2,7 +2,7 @@
 
 import * as dotenv from 'dotenv';
 dotenv.config();
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import path from 'path';
 import sgMail from '@sendgrid/mail';
 import bcrypt from 'bcryptjs';
@@ -112,10 +112,15 @@ app.post('/send-reset-code', async (req: Request, res: Response) => {
 
   const msg = {
     to: email,
-    from: process.env.EMAIL_USER, // Use your verified sender email from SendGrid
+    from: process.env.EMAIL_USER as string, // Ensure EMAIL_USER is defined
     subject: 'Password Reset Code',
     text: `Your reset code is: ${resetCode}`,
   };
+
+  if (!process.env.EMAIL_USER) {
+    console.error('EMAIL_USER environment variable is not set.');
+    return res.status(500).send('Email sender not configured.');
+  }
 
   console.log(`Attempting to send email via SendGrid to: ${email} from: ${process.env.EMAIL_USER}`); // Log SendGrid attempt
 
