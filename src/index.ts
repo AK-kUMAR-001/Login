@@ -1,43 +1,39 @@
 
 
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { Pool } = require('pg');
-const sgMail = require('@sendgrid/mail'); // Import SendGrid
+import * as dotenv from 'dotenv';
+dotenv.config();
+import express, { Request, Response } from 'express';
+import path from 'path';
+import sgMail from '@sendgrid/mail';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import { Pool } from 'pg';
+import cors from 'cors';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// PostgreSQL connection pool
-console.log('DATABASE_URL:', process.env.DATABASE_URL);
-const pool = new Pool({
+const db = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  },
 });
-
-    await pool.query('SELECT 1;');
-    console.log('Database connected successfully.');
 
 app.use(express.json());
 app.use(express.static('frontend'));
 
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
 // Login route
-app.post('/login', async (req, res) => {
+app.post('/login', async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const trimmedEmail = email.trim();
 
     try {
-        const result = await pool.query('SELECT id, email, password_hash FROM users WHERE email = $1', [trimmedEmail]);
+        const result = await db.query('SELECT id, email, password_hash FROM users WHERE email = $1', [trimmedEmail]);
         const user = result.rows[0];
 
         if (!user) {
@@ -57,7 +53,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-app.post('/signup', async (req, res) => {
+app.post('/signup', async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
         console.log(`Attempting to sign up user: ${email}`);
@@ -66,7 +62,7 @@ app.post('/signup', async (req, res) => {
             return res.status(400).send('Email and password are required.');
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const result = await pool.query('INSERT INTO users (email, password_hash) VALUES ($1, $2) ON CONFLICT (email) DO UPDATE SET password_hash = $2 RETURNING id', [email, hashedPassword]);
+        const result = await db.query('INSERT INTO users (email, password_hash) VALUES ($1, $2) ON CONFLICT (email) DO UPDATE SET password_hash = $2 RETURNING id', [email, hashedPassword]);
         console.log(`User ${email} signed up successfully. User ID: ${result.rows[0].id}`);
         res.status(201).send(`User ${email} signed up successfully.`);
     } catch (error) {
@@ -78,7 +74,7 @@ app.post('/signup', async (req, res) => {
 // Temporary route to view all users
 app.get('/users', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, email FROM users');
+    const result = await db.query('SELECT id, email FROM users');
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -87,7 +83,7 @@ app.get('/users', async (req, res) => {
 });
 
 // Send Reset Code route
-app.post('/send-reset-code', async (req, res) => {
+app.post('/send-reset-code', async (req: Request, res: Response) => {
   const { email } = req.body;
   console.log(`Received request to send reset code for email: ${email}`); // Log the incoming email
 
@@ -139,7 +135,7 @@ app.post('/reset-password-with-code', async (req, res) => {
     const trimmedEmail = email.trim();
 
     try {
-        const userResult = await pool.query(
+        const userResult = await db.query(
             'SELECT id, password_reset_token, password_reset_expires FROM users WHERE email = $1',
             [trimmedEmail]
         );
@@ -151,7 +147,7 @@ app.post('/reset-password-with-code', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        await pool.query(
+        await db.query(
             'UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2',
             [hashedPassword, user.id]
         );
@@ -165,6 +161,5 @@ app.post('/reset-password-with-code', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
-sgMail.setApiKey(process.env.SENDGRID_API_KEY); // Set SendGrid API Key
