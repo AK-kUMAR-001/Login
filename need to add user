@@ -1,0 +1,13 @@
+fetch('https://studentlogin-efkm.onrender.com/signup-temp', { // <--- THIS MUST BE THE URL!
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    email: 'newuser@example.com', // IMPORTANT: Replace with a NEW, unique email
+    password: 'newpassword123' // IMPORTANT: Replace with a password for the new user
+  }),
+})
+.then(response => response.text())
+.then(data => console.log('Signup Response:', data))
+.catch(error => console.error('Signup Error:', error));  //old system based 

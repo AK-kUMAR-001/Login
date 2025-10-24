@@ -1,0 +1,14 @@
+
+
+PS E:\log> cd "C:\Program Files\PostgreSQL\18\bin"
+PS C:\Program Files\PostgreSQL\18\bin> 
+PS C:\Program Files\PostgreSQL\18\bin> ./psql -h localhost -p 5432 -U postgres -d login_data
+Password for user postgres: 
+
+psql (18.0)
+WARNING: Console code page (437) differs from Windows code page (1252)   
+         8-bit characters might not work correctly. See psql reference   
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+login_data=#

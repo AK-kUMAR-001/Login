@@ -1,0 +1,9 @@
+fetch('https://studentlogin-efkm.onrender.com/users', {
+  method: 'GET', // This is a GET request to retrieve data
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+.then(response => response.json()) // Expecting a JSON response
+.then(data => console.log('Users List:', data))
+.catch(error => console.error('Error fetching users:', error));
