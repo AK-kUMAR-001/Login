@@ -1,4 +1,4 @@
-An error occurred. Please try again.body {
+body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
     display: flex;
@@ -6,6 +6,7 @@ An error occurred. Please try again.body {
     align-items: center;
     min-height: 100vh;
     margin: 0;
+    padding: 20px; /* Add padding for smaller screens */
 }
 
 .container {
@@ -13,8 +14,15 @@ An error occurred. Please try again.body {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 300px;
+    max-width: 400px; /* Use max-width instead of fixed width */
+    width: 100%; /* Ensure it takes full width up to max-width */
     text-align: center;
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+    }
 }
 
 .form-group {

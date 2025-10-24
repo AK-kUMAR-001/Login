@@ -16,21 +16,11 @@ const PORT = process.env.PORT || 3000;
 console.log('DATABASE_URL:', process.env.DATABASE_URL);
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: true,
 });
 
-console.log('Attempting to create users table...');
-pool.query(`
-  CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL
-  )
-`).then(() => {
-  console.log('Users table created or already exists.');
-}).catch(err => console.error('Error creating users table:', err));
+    await pool.query('SELECT 1;');
+    console.log('Database connected successfully.');
 
 app.use(express.json());
 app.use(express.static('frontend'));
