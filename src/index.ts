@@ -46,11 +46,33 @@ app.post('/login', async (req: Request, res: Response) => {
             return res.status(401).send('Invalid credentials');
         }
 
-        res.status(200).json({ message: 'Login successful' });
+        // Generate a JWT token
+        const token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+
+        res.status(200).json({ message: 'Login successful', token });
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).send('Server error');
     }
+});
+
+// Middleware to verify JWT
+function authenticateToken(req: Request, res: Response, next: Function) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token == null) return res.sendStatus(401); // No token
+
+    jwt.verify(token, process.env.JWT_SECRET as string, (err: any, user: any) => {
+        if (err) return res.sendStatus(403); // Invalid token
+        (req as any).user = user; // Attach user information to the request
+        next();
+    });
+}
+
+// Protected route example
+app.get('/protected', authenticateToken, (req: Request, res: Response) => {
+    res.status(200).json({ message: 'Welcome to the protected route!', user: (req as any).user });
 });
 
 app.post('/signup', async (req: Request, res: Response) => {
